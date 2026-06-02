@@ -2,9 +2,13 @@
 
 北京理工大学校园网官方登录脚本太烂了。于是我把它逆向了。
 
-不是那种“有点粗糙”的烂，是那种参数不好记、报错不说人话、想挂后台还得先和它搏斗一轮的烂。所以这里放一个更适合 Linux 日常使用的北理工 SRun4K 登录脚本：单文件、零第三方依赖，拿学号和密码登录，不自动给用户名乱加后缀。
+不是那种“有点粗糙”的烂，报错不说人话、想挂后台还得先和它搏斗一轮的烂。所以这里放一个更适合人类使用的北理工 SRun4K 登录脚本：单文件、零第三方依赖，拿学号和密码登录。
 
-该脚本能完全替代 http://10.0.0.55/download/download_client.html 所提供的登录脚本
+该脚本能完全替代 http://10.0.0.55/download/download_client.html 所提供的登录脚本，已测试 Linux / Windows 环境。
+
+理论上支持所有使用 深澜软件 的网络登录。
+
+
 
 ## 功能
 
@@ -20,16 +24,16 @@
 ## 运行
 
 ```bash
-python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55
+python3 srun.py login -u 学号 -p 密码
 ```
 
 常用命令：
 
 ```bash
-python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55
-python3 srun.py check --host 10.0.0.55
-python3 srun.py logout -u 学号 --host 10.0.0.55
-python3 srun.py keepalive -u 学号 -p 密码 --host 10.0.0.55 --interval 300
+python3 srun.py login -u 学号 -p 密码
+python3 srun.py check
+python3 srun.py logout -u 学号
+python3 srun.py keepalive -u 学号 -p 密码 --interval 300
 python3 srun.py --help
 ```
 
@@ -105,10 +109,10 @@ python3 srun.py login
 如果登录成功但不能上网，或者你的接入点确实不是 `1`，再手动指定：
 
 ```bash
-python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --ip 你的IP --acid 1
+python3 srun.py login -u 学号 -p 密码 --acid 1
 ```
 
-如果出现“登录成功但不能上网”，优先怀疑 `acid` 不对。这个坑参考脚本里也提到过，确实挺校园网的。
+如果出现“登录成功但不能上网”，优先怀疑 `acid` 不对。
 
 ## portal 入口
 
@@ -227,6 +231,6 @@ python3 -m unittest tests.test_srun -v
 
 ## 感谢
 
-- https://github.com/Alanxtl/SpadgerBoy/BIT-srun-login-script
-- https://github.com/Alanxtl/coffeehat/BIT-srun-login-script
-- https://github.com/Alanxtl/AdamXuD/Sztu-srun-login-script
+- https://github.com/SpadgerBoy/BIT-srun-login-script
+- https://github.com/coffeehat/BIT-srun-login-script
+- https://github.com/AdamXuD/Sztu-srun-login-script
