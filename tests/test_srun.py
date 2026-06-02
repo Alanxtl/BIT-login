@@ -257,6 +257,18 @@ class OperationTests(unittest.TestCase):
         self.assertFalse(result["online"])
         self.assertEqual(result["message"], "offline: not_online_error")
 
+    def test_check_treats_missing_username_as_offline_even_with_ip(self):
+        http = OnlineInfoHttp('jsonp_srun_info({"online_ip":"10.1.2.3"})')
+        result = self.srun.check(
+            http=http,
+            protocol="http",
+            host="10.0.0.55",
+            acid="auto",
+            portal_path="",
+        )
+        self.assertFalse(result["online"])
+        self.assertEqual(result["message"], "offline: no active user")
+
     def test_redact_hides_password_values(self):
         redacted = self.srun.redact_params({"password": "secret", "username": "20260001"})
         self.assertEqual(redacted["password"], "<redacted>")
