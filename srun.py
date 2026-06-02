@@ -187,6 +187,16 @@ def response_message(data):
     return json.dumps(data, ensure_ascii=False)
 
 
+def online_status(data):
+    error = str(data.get("error", "")).lower()
+    if error == "ok" or data.get("online_ip"):
+        user = data.get("user_name") or data.get("username") or "unknown"
+        ip = data.get("online_ip") or data.get("ip") or "unknown-ip"
+        return True, f"online: {user} @ {ip}"
+    reason = data.get("error_msg") or data.get("error") or data.get("res") or "not online"
+    return False, f"offline: {reason}"
+
+
 class HttpError(RuntimeError):
     pass
 
@@ -282,6 +292,14 @@ def get_challenge(http, protocol, host, username, ip):
     return token
 
 
+def get_online_info(http, protocol, host):
+    text = http.get_text(
+        portal_base(protocol, host) + "/cgi-bin/rad_user_info",
+        {"callback": "jsonp_srun_info"},
+    )
+    return parse_jsonp(text)
+
+
 def login(http, protocol, host, username, password, ip, acid, n, vtype, enc_ver, portal_path=""):
     resolved_ip, resolved_acid = resolve_portal_context(http, protocol, host, ip, acid, portal_path)
     token = get_challenge(http, protocol, host, username, resolved_ip)
@@ -313,8 +331,13 @@ def logout(http, protocol, host, username, ip, acid):
 
 
 def check(http, protocol, host, acid="auto", portal_path=""):
-    url, text = fetch_portal_page(http, protocol, host, acid, portal_path)
-    return {"message": "portal reachable", "url": url, "snippet": text[:300]}
+    try:
+        data = get_online_info(http, protocol, host)
+    except (HttpError, ValueError):
+        url, text = fetch_portal_page(http, protocol, host, acid, portal_path)
+        return {"message": "online status unavailable; portal reachable", "url": url, "snippet": text[:300]}
+    online, message = online_status(data)
+    return {"message": message, "online": online, "data": data}
 
 
 def default_config():

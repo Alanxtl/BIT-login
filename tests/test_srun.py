@@ -130,6 +130,8 @@ class FallbackPortalHttp:
 
     def get_text(self, url, params=None):
         self.calls.append((url, params or {}))
+        if url.endswith("/cgi-bin/rad_user_info"):
+            raise self.srun.HttpError("online info unavailable")
         if url.endswith("/srun_portal_pc.php"):
             raise self.srun.HttpError("HTTP 404 for portal")
         if url.endswith("/srun_portal_pc?ac_id=1&theme=bit"):
@@ -144,6 +146,18 @@ class PortalWithoutAcidHttp:
     def get_text(self, url, params=None):
         self.calls.append((url, params or {}))
         return '<input id="user_ip" value="10.9.8.7">'
+
+
+class OnlineInfoHttp:
+    def __init__(self, body):
+        self.body = body
+        self.calls = []
+
+    def get_text(self, url, params=None):
+        self.calls.append((url, params or {}))
+        if url.endswith("/cgi-bin/rad_user_info"):
+            return self.body
+        raise AssertionError(url)
 
 
 class OperationTests(unittest.TestCase):
@@ -209,8 +223,36 @@ class OperationTests(unittest.TestCase):
             acid="auto",
             portal_path="",
         )
-        self.assertEqual(result["message"], "portal reachable")
+        self.assertEqual(result["message"], "online status unavailable; portal reachable")
         self.assertEqual(result["url"], "http://10.0.0.55/srun_portal_pc?ac_id=1&theme=bit")
+
+    def test_check_reports_online_status_from_rad_user_info(self):
+        http = OnlineInfoHttp(
+            'jsonp_srun_info({"error":"ok","user_name":"20260001","online_ip":"10.1.2.3"})'
+        )
+        result = self.srun.check(
+            http=http,
+            protocol="http",
+            host="10.0.0.55",
+            acid="auto",
+            portal_path="",
+        )
+        self.assertTrue(result["online"])
+        self.assertEqual(result["message"], "online: 20260001 @ 10.1.2.3")
+        self.assertEqual(http.calls[0][0], "http://10.0.0.55/cgi-bin/rad_user_info")
+        self.assertEqual(http.calls[0][1]["callback"], "jsonp_srun_info")
+
+    def test_check_reports_offline_status_from_rad_user_info(self):
+        http = OnlineInfoHttp('jsonp_srun_info({"error":"not_online_error"})')
+        result = self.srun.check(
+            http=http,
+            protocol="http",
+            host="10.0.0.55",
+            acid="auto",
+            portal_path="",
+        )
+        self.assertFalse(result["online"])
+        self.assertEqual(result["message"], "offline: not_online_error")
 
     def test_redact_hides_password_values(self):
         redacted = self.srun.redact_params({"password": "secret", "username": "20260001"})

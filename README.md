@@ -33,6 +33,14 @@ python3 srun.py keepalive -u 学号 -p 密码 --host 10.0.0.55 --interval 300
 python3 srun.py --help
 ```
 
+`check` 会查询 `/cgi-bin/rad_user_info`，输出当前设备是否已经在线：
+
+```text
+online: 学号 @ 在线IP
+```
+
+如果返回 `offline: ...`，说明当前设备还没通过认证。
+
 ## 配置文件
 
 生成默认配置：
