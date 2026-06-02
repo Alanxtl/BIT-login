@@ -101,6 +101,9 @@ class ParsingTests(unittest.TestCase):
     def test_extract_acid_from_js_html(self):
         self.assertEqual(self.srun.extract_acid('acid: "8",'), "8")
 
+    def test_extract_acid_from_official_index_path(self):
+        self.assertEqual(self.srun.extract_acid('<a href="/index_1.html">portal</a>'), "1")
+
     def test_response_message_prefers_known_fields(self):
         self.assertEqual(
             self.srun.response_message({"error_msg": "failed", "res": "error"}),

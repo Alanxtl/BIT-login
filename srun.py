@@ -173,10 +173,15 @@ def extract_ip(html):
 
 
 def extract_acid(html):
-    match = re.search(r'acid\s*:\s*["\']([^"\']+)["\']', html)
-    if not match:
-        raise ValueError("could not extract acid from portal page; pass --acid")
-    return match.group(1)
+    patterns = [
+        r'acid\s*:\s*["\']([^"\']+)["\']',
+        r'/index_([0-9]+)\.html',
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, html)
+        if match:
+            return match.group(1)
+    raise ValueError("could not extract acid from portal page; pass --acid")
 
 
 def response_message(data):
