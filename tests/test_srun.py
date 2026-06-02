@@ -231,7 +231,7 @@ class OperationTests(unittest.TestCase):
 
     def test_check_reports_online_status_from_rad_user_info(self):
         http = OnlineInfoHttp(
-            'jsonp_srun_info({"error":"ok","user_name":"20260001","online_ip":"10.1.2.3"})'
+            'jsonp_srun_info({"error":"ok","user_name":"20260001","online_ip":"10.1.2.3","products_name":"学生套餐"})'
         )
         result = self.srun.check(
             http=http,
@@ -241,7 +241,7 @@ class OperationTests(unittest.TestCase):
             portal_path="",
         )
         self.assertTrue(result["online"])
-        self.assertEqual(result["message"], "online: 20260001 @ 10.1.2.3")
+        self.assertEqual(result["message"], "online: 20260001 @ 10.1.2.3 @ 学生套餐")
         self.assertEqual(http.calls[0][0], "http://10.0.0.55/cgi-bin/rad_user_info")
         self.assertEqual(http.calls[0][1]["callback"], "jsonp_srun_info")
 

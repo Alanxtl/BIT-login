@@ -197,7 +197,11 @@ def online_status(data):
     if error == "ok" or data.get("online_ip"):
         user = data.get("user_name") or data.get("username") or "unknown"
         ip = data.get("online_ip") or data.get("ip") or "unknown-ip"
-        return True, f"online: {user} @ {ip}"
+        message = f"online: {user} @ {ip}"
+        product = data.get("products_name")
+        if product:
+            message += f" @ {product}"
+        return True, message
     reason = data.get("error_msg") or data.get("error") or data.get("res") or "not online"
     return False, f"offline: {reason}"
 
