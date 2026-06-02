@@ -1,0 +1,189 @@
+# SRun Login, But Less Painful
+
+校园网官方脚本太烂了。
+
+不是那种“有点粗糙”的烂，是那种参数不好记、报错不说人话、想挂后台还得先和它搏斗一轮的烂。所以这里放一个更适合 Linux 日常使用的 SRun4K 登录脚本：单文件、零第三方依赖，拿学号和密码登录，不自动给用户名乱加后缀。
+
+## 功能
+
+- 登录校园网
+- 检查 portal 是否可达
+- 登出
+- keepalive 掉线重登
+- 自动解析 `ip` 和 `acid`
+- 支持配置文件、环境变量、命令行参数
+- Debug 输出会隐藏密码
+
+## 运行
+
+这个脚本没有第三方依赖，有 Python 3 就能跑：
+
+```bash
+python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55
+```
+
+常用命令：
+
+```bash
+python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55
+python3 srun.py check --host 10.0.0.55
+python3 srun.py logout -u 学号 --host 10.0.0.55
+python3 srun.py keepalive -u 学号 -p 密码 --host 10.0.0.55 --interval 300
+python3 srun.py --help
+```
+
+## 配置文件
+
+生成默认配置：
+
+```bash
+python3 srun.py init-config
+```
+
+默认路径：
+
+```text
+~/.config/srun-login/config.json
+```
+
+配置模板会包含：
+
+```json
+{
+  "protocol": "http",
+  "host": "10.0.0.55",
+  "username": "",
+  "password": "",
+  "acid": "auto",
+  "ip": "",
+  "n": "200",
+  "type": "1",
+  "enc_ver": "srun_bx1",
+  "test_url": "http://www.baidu.com/"
+}
+```
+
+密码默认留空。要不要写进配置文件由你决定；不想落盘就每次用 `-p` 传。
+
+优先级：
+
+```text
+命令行参数 > 环境变量 > 配置文件 > 默认值
+```
+
+支持的环境变量：
+
+```bash
+export SRUN_HOST=10.0.0.55
+export SRUN_USERNAME=你的学号
+export SRUN_PASSWORD=你的密码
+export SRUN_ACID=auto
+export SRUN_IP=
+```
+
+然后：
+
+```bash
+python3 srun.py login
+```
+
+## acid 和 ip
+
+默认会从 portal 页面自动解析 `ip` 和 `acid`。如果解析失败，可以手动指定：
+
+```bash
+python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --ip 你的IP --acid 8
+```
+
+如果出现“登录成功但不能上网”，优先怀疑 `acid` 不对。这个坑参考脚本里也提到过，确实挺校园网的。
+
+## Keepalive
+
+后台保活：
+
+```bash
+nohup python3 srun.py keepalive -u 学号 -p 密码 --host 10.0.0.55 --interval 300 > srun.log 2>&1 &
+```
+
+它会定期检查网络，不通就重新登录。默认测试 URL 是：
+
+```text
+http://www.baidu.com/
+```
+
+也可以换：
+
+```bash
+python3 srun.py keepalive -u 学号 -p 密码 --test-url http://connectivitycheck.gstatic.com/generate_204
+```
+
+## systemd 示例
+
+新建：
+
+```text
+~/.config/systemd/user/srun-login.service
+```
+
+内容：
+
+```ini
+[Unit]
+Description=SRun campus network keepalive
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/path/to/project
+ExecStart=python3 srun.py keepalive --interval 300
+Restart=always
+RestartSec=10
+Environment=SRUN_HOST=10.0.0.55
+Environment=SRUN_USERNAME=你的学号
+Environment=SRUN_PASSWORD=你的密码
+
+[Install]
+WantedBy=default.target
+```
+
+启用：
+
+```bash
+systemctl --user daemon-reload
+systemctl --user enable --now srun-login.service
+```
+
+看日志：
+
+```bash
+journalctl --user -u srun-login.service -f
+```
+
+## 协议说明
+
+脚本实现的是常见 SRun4K 流程：
+
+1. 打开 portal 页面，解析 `ip` 和 `acid`
+2. 请求 `/cgi-bin/get_challenge` 获取 token
+3. 生成 `{MD5}` 密码字段
+4. 生成 `{SRBX1}` 的 `info`
+5. 计算 `chksum`
+6. 请求 `/cgi-bin/srun_portal?action=login`
+
+用户名就是你输入的完整用户名，通常是学号。不会自动追加运营商后缀。
+
+## Debug
+
+```bash
+python3 srun.py login -u 学号 -p 密码 --debug
+```
+
+Debug 会打印更多响应信息，但密码会显示为：
+
+```text
+<redacted>
+```
+
+## 免责声明
+
+这个脚本只是把你自己的账号密码自动提交给校园网认证系统，不提供绕过认证、破解账号、规避计费之类的功能。它的目标很朴素：让 Linux 下登录校园网别再像拆盲盒。
