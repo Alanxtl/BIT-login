@@ -12,6 +12,7 @@ import urllib.parse
 import urllib.request
 
 SRUN_B64_ALPHABET = "LVoJPiCN2R8G90yg+hmFHuacZ1OWMnrsSTXkYpUq/3dlbfKwv6xztjI7DeBE45QA"
+DEFAULT_ACID = "1"
 
 
 def hmac_md5(password, token):
@@ -227,7 +228,7 @@ def normalize_portal_path(path):
 def portal_candidate_paths(acid, portal_path=""):
     if portal_path:
         return [normalize_portal_path(portal_path)]
-    candidate_acid = "8" if acid == "auto" else str(acid)
+    candidate_acid = DEFAULT_ACID if acid == "auto" else str(acid)
     return [
         "/srun_portal_pc.php",
         f"/srun_portal_pc?ac_id={urllib.parse.quote(candidate_acid)}&theme=bit",
@@ -259,7 +260,13 @@ def redact_params(params):
 def resolve_portal_context(http, protocol, host, ip, acid, portal_path=""):
     _, page = fetch_portal_page(http, protocol, host, acid, portal_path)
     resolved_ip = ip or extract_ip(page)
-    resolved_acid = extract_acid(page) if acid == "auto" else str(acid)
+    if acid == "auto":
+        try:
+            resolved_acid = extract_acid(page)
+        except ValueError:
+            resolved_acid = DEFAULT_ACID
+    else:
+        resolved_acid = str(acid)
     return resolved_ip, resolved_acid
 
 

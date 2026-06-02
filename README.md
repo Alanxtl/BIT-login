@@ -92,10 +92,12 @@ python3 srun.py login
 
 ## acid 和 ip
 
-默认会从 portal 页面自动解析 `ip` 和 `acid`。如果解析失败，可以手动指定：
+默认会从 portal 页面自动解析 `ip` 和 `acid`。如果页面没写 `acid`，脚本会按 BIT 默认值 `1` 来，不用手动传。
+
+如果登录成功但不能上网，或者你的接入点确实不是 `1`，再手动指定：
 
 ```bash
-python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --ip 你的IP --acid 8
+python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --ip 你的IP --acid 1
 ```
 
 如果出现“登录成功但不能上网”，优先怀疑 `acid` 不对。这个坑参考脚本里也提到过，确实挺校园网的。
@@ -106,7 +108,7 @@ python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --ip 你的IP --acid 
 
 ```text
 /srun_portal_pc.php
-/srun_portal_pc?ac_id=8&theme=bit
+/srun_portal_pc?ac_id=1&theme=bit
 /index.html
 /
 ```
@@ -114,8 +116,8 @@ python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --ip 你的IP --acid 
 如果你的校园网入口比较有个性，也可以手动指定：
 
 ```bash
-python3 srun.py check --host 10.0.0.55 --portal-path '/srun_portal_pc?ac_id=8&theme=bit'
-python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --portal-path '/srun_portal_pc?ac_id=8&theme=bit'
+python3 srun.py check --host 10.0.0.55 --portal-path '/srun_portal_pc?ac_id=1&theme=bit'
+python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --portal-path '/srun_portal_pc?ac_id=1&theme=bit'
 ```
 
 ## Keepalive

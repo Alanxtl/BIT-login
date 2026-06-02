@@ -132,9 +132,18 @@ class FallbackPortalHttp:
         self.calls.append((url, params or {}))
         if url.endswith("/srun_portal_pc.php"):
             raise self.srun.HttpError("HTTP 404 for portal")
-        if url.endswith("/srun_portal_pc?ac_id=8&theme=bit"):
-            return '<input id="user_ip" value="10.9.8.7"><script>acid: "8",</script>'
+        if url.endswith("/srun_portal_pc?ac_id=1&theme=bit"):
+            return '<input id="user_ip" value="10.9.8.7"><script>acid: "1",</script>'
         raise AssertionError(url)
+
+
+class PortalWithoutAcidHttp:
+    def __init__(self):
+        self.calls = []
+
+    def get_text(self, url, params=None):
+        self.calls.append((url, params or {}))
+        return '<input id="user_ip" value="10.9.8.7">'
 
 
 class OperationTests(unittest.TestCase):
@@ -174,9 +183,22 @@ class OperationTests(unittest.TestCase):
             portal_path="",
         )
         self.assertEqual(ip, "10.9.8.7")
-        self.assertEqual(acid, "8")
+        self.assertEqual(acid, "1")
         self.assertEqual(http.calls[0][0], "http://10.0.0.55/srun_portal_pc.php")
-        self.assertEqual(http.calls[1][0], "http://10.0.0.55/srun_portal_pc?ac_id=8&theme=bit")
+        self.assertEqual(http.calls[1][0], "http://10.0.0.55/srun_portal_pc?ac_id=1&theme=bit")
+
+    def test_auto_acid_defaults_to_bit_acid_when_portal_omits_it(self):
+        http = PortalWithoutAcidHttp()
+        ip, acid = self.srun.resolve_portal_context(
+            http=http,
+            protocol="http",
+            host="10.0.0.55",
+            ip=None,
+            acid="auto",
+            portal_path="",
+        )
+        self.assertEqual(ip, "10.9.8.7")
+        self.assertEqual(acid, "1")
 
     def test_check_uses_first_reachable_portal_candidate(self):
         http = FallbackPortalHttp(self.srun)
@@ -188,7 +210,7 @@ class OperationTests(unittest.TestCase):
             portal_path="",
         )
         self.assertEqual(result["message"], "portal reachable")
-        self.assertEqual(result["url"], "http://10.0.0.55/srun_portal_pc?ac_id=8&theme=bit")
+        self.assertEqual(result["url"], "http://10.0.0.55/srun_portal_pc?ac_id=1&theme=bit")
 
     def test_redact_hides_password_values(self):
         redacted = self.srun.redact_params({"password": "secret", "username": "20260001"})
