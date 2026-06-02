@@ -16,8 +16,6 @@
 
 ## 运行
 
-这个脚本没有第三方依赖，有 Python 3 就能跑：
-
 ```bash
 python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55
 ```
@@ -170,7 +168,7 @@ journalctl --user -u srun-login.service -f
 5. 计算 `chksum`
 6. 请求 `/cgi-bin/srun_portal?action=login`
 
-用户名就是你输入的完整用户名，通常是学号。不会自动追加运营商后缀。
+用户名就是你输入的完整用户名，通常是学号。
 
 ## Debug
 
@@ -187,3 +185,9 @@ Debug 会打印更多响应信息，但密码会显示为：
 ## 免责声明
 
 这个脚本只是把你自己的账号密码自动提交给校园网认证系统，不提供绕过认证、破解账号、规避计费之类的功能。它的目标很朴素：让 Linux 下登录校园网别再像拆盲盒。
+
+## 感谢
+
+- https://github.com/Alanxtl/SpadgerBoy/BIT-srun-login-script
+- https://github.com/Alanxtl/coffeehat/BIT-srun-login-script
+- https://github.com/Alanxtl/AdamXuD/Sztu-srun-login-script
