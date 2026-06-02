@@ -13,6 +13,7 @@
 - 登出
 - keepalive 掉线重登
 - 自动解析 `ip` 和 `acid`
+- 自动尝试 BIT 常见 portal 入口
 - 支持配置文件、环境变量、命令行参数
 - Debug 输出会隐藏密码
 
@@ -55,6 +56,7 @@ python3 srun.py init-config
   "username": "",
   "password": "",
   "acid": "auto",
+  "portal_path": "",
   "ip": "",
   "n": "200",
   "type": "1",
@@ -78,6 +80,7 @@ export SRUN_HOST=10.0.0.55
 export SRUN_USERNAME=你的学号
 export SRUN_PASSWORD=你的密码
 export SRUN_ACID=auto
+export SRUN_PORTAL_PATH=
 export SRUN_IP=
 ```
 
@@ -96,6 +99,24 @@ python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --ip 你的IP --acid 
 ```
 
 如果出现“登录成功但不能上网”，优先怀疑 `acid` 不对。这个坑参考脚本里也提到过，确实挺校园网的。
+
+## portal 入口
+
+脚本会自动尝试这些入口：
+
+```text
+/srun_portal_pc.php
+/srun_portal_pc?ac_id=8&theme=bit
+/index.html
+/
+```
+
+如果你的校园网入口比较有个性，也可以手动指定：
+
+```bash
+python3 srun.py check --host 10.0.0.55 --portal-path '/srun_portal_pc?ac_id=8&theme=bit'
+python3 srun.py login -u 学号 -p 密码 --host 10.0.0.55 --portal-path '/srun_portal_pc?ac_id=8&theme=bit'
+```
 
 ## Keepalive
 
@@ -182,6 +203,12 @@ Debug 会打印更多响应信息，但密码会显示为：
 
 ```text
 <redacted>
+```
+
+## 测试
+
+```bash
+python3 -m unittest tests.test_srun -v
 ```
 
 ## 免责声明

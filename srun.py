@@ -218,6 +218,37 @@ def portal_base(protocol, host):
     return f"{protocol}://{host.rstrip('/')}"
 
 
+def normalize_portal_path(path):
+    if not path:
+        return ""
+    return path if path.startswith("/") else "/" + path
+
+
+def portal_candidate_paths(acid, portal_path=""):
+    if portal_path:
+        return [normalize_portal_path(portal_path)]
+    candidate_acid = "8" if acid == "auto" else str(acid)
+    return [
+        "/srun_portal_pc.php",
+        f"/srun_portal_pc?ac_id={urllib.parse.quote(candidate_acid)}&theme=bit",
+        "/index.html",
+        "/",
+    ]
+
+
+def fetch_portal_page(http, protocol, host, acid="auto", portal_path=""):
+    base = portal_base(protocol, host)
+    errors = []
+    for path in portal_candidate_paths(acid, portal_path):
+        url = base + path
+        try:
+            return url, http.get_text(url)
+        except HttpError as exc:
+            errors.append(str(exc))
+    detail = "; ".join(errors[-2:]) if errors else "no portal candidates configured"
+    raise HttpError(f"could not reach portal page on {base}: {detail}")
+
+
 def redact_params(params):
     redacted = dict(params)
     if "password" in redacted:
@@ -225,8 +256,8 @@ def redact_params(params):
     return redacted
 
 
-def resolve_portal_context(http, protocol, host, ip, acid):
-    page = http.get_text(portal_base(protocol, host) + "/srun_portal_pc.php")
+def resolve_portal_context(http, protocol, host, ip, acid, portal_path=""):
+    _, page = fetch_portal_page(http, protocol, host, acid, portal_path)
     resolved_ip = ip or extract_ip(page)
     resolved_acid = extract_acid(page) if acid == "auto" else str(acid)
     return resolved_ip, resolved_acid
@@ -244,8 +275,8 @@ def get_challenge(http, protocol, host, username, ip):
     return token
 
 
-def login(http, protocol, host, username, password, ip, acid, n, vtype, enc_ver):
-    resolved_ip, resolved_acid = resolve_portal_context(http, protocol, host, ip, acid)
+def login(http, protocol, host, username, password, ip, acid, n, vtype, enc_ver, portal_path=""):
+    resolved_ip, resolved_acid = resolve_portal_context(http, protocol, host, ip, acid, portal_path)
     token = get_challenge(http, protocol, host, username, resolved_ip)
     params = build_login_params(
         username=username,
@@ -274,9 +305,9 @@ def logout(http, protocol, host, username, ip, acid):
     return {"data": data, "message": response_message(data), "params": redact_params(params)}
 
 
-def check(http, protocol, host):
-    text = http.get_text(portal_base(protocol, host) + "/srun_portal_pc.php")
-    return {"message": "portal reachable", "snippet": text[:300]}
+def check(http, protocol, host, acid="auto", portal_path=""):
+    url, text = fetch_portal_page(http, protocol, host, acid, portal_path)
+    return {"message": "portal reachable", "url": url, "snippet": text[:300]}
 
 
 def default_config():
@@ -286,6 +317,7 @@ def default_config():
         "username": "",
         "password": "",
         "acid": "auto",
+        "portal_path": "",
         "ip": "",
         "n": "200",
         "type": "1",
@@ -299,6 +331,7 @@ ENV_MAP = {
     "SRUN_USERNAME": "username",
     "SRUN_PASSWORD": "password",
     "SRUN_ACID": "acid",
+    "SRUN_PORTAL_PATH": "portal_path",
     "SRUN_IP": "ip",
 }
 
@@ -337,6 +370,7 @@ def add_common_options(parser, include_config=False):
     parser.add_argument("--username", "-u", default=None)
     parser.add_argument("--password", "-p", default=None)
     parser.add_argument("--acid", default=None)
+    parser.add_argument("--portal-path", default=None)
     parser.add_argument("--ip", default=None)
     parser.add_argument("--n", default=None)
     parser.add_argument("--type", dest="vtype", default=None)
@@ -384,6 +418,7 @@ def run_keepalive(http, settings, interval, test_url):
                 password=require_value(settings, "password"),
                 ip=settings.get("ip") or None,
                 acid=settings["acid"],
+                portal_path=settings.get("portal_path") or "",
                 n=settings["n"],
                 vtype=settings["type"],
                 enc_ver=settings["enc_ver"],
@@ -406,6 +441,7 @@ def main(argv=None):
         "username": ns.username,
         "password": ns.password,
         "acid": ns.acid,
+        "portal_path": ns.portal_path,
         "ip": ns.ip,
         "n": ns.n,
         "type": ns.vtype,
@@ -422,6 +458,7 @@ def main(argv=None):
             password=require_value(settings, "password"),
             ip=settings.get("ip") or None,
             acid=settings["acid"],
+            portal_path=settings.get("portal_path") or "",
             n=settings["n"],
             vtype=settings["type"],
             enc_ver=settings["enc_ver"],
@@ -436,7 +473,13 @@ def main(argv=None):
             acid=settings["acid"],
         )
     elif ns.command == "check":
-        result = check(http=http, protocol=settings["protocol"], host=settings["host"])
+        result = check(
+            http=http,
+            protocol=settings["protocol"],
+            host=settings["host"],
+            acid=settings["acid"],
+            portal_path=settings.get("portal_path") or "",
+        )
     elif ns.command == "keepalive":
         run_keepalive(http, settings, ns.interval, ns.test_url or settings["test_url"])
         return 0
@@ -449,4 +492,8 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    try:
+        raise SystemExit(main())
+    except (HttpError, ValueError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        raise SystemExit(1)
