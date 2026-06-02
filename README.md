@@ -154,6 +154,8 @@ python3 srun.py keepalive -u 学号 -p 密码 --test-url http://connectivitychec
 
 ## systemd 示例
 
+Windows 开机自启可参考 https://www.cnblogs.com/RainFate/p/14214274.html
+
 新建：
 
 ```text
