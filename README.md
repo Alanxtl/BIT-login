@@ -40,7 +40,7 @@ python3 srun.py --help
 `check` 会查询 `/cgi-bin/rad_user_info`，输出当前设备是否已经在线：
 
 ```text
-online: 学号 @ 在线IP @ 套餐
+online: 学号 @ 在线IP @ 套餐 @ 剩余流量 295.33 GiB @ 剩余时长 不限时
 ```
 
 如果返回 `offline: ...`，说明当前设备还没通过认证。

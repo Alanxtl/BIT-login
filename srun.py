@@ -192,6 +192,38 @@ def response_message(data):
     return json.dumps(data, ensure_ascii=False)
 
 
+def format_bytes(value):
+    size = float(value)
+    units = ["B", "KiB", "MiB", "GiB", "TiB"]
+    unit = units[0]
+    for unit in units:
+        if size < 1024 or unit == units[-1]:
+            break
+        size /= 1024
+    if unit == "B":
+        return f"{int(size)} B"
+    return f"{size:.2f} {unit}"
+
+
+def format_seconds(value):
+    seconds = int(value)
+    if seconds == 0:
+        return "不限时"
+    days, seconds = divmod(seconds, 86400)
+    hours, seconds = divmod(seconds, 3600)
+    minutes, seconds = divmod(seconds, 60)
+    parts = []
+    if days:
+        parts.append(f"{days}d")
+    if hours:
+        parts.append(f"{hours}h")
+    if minutes:
+        parts.append(f"{minutes}m")
+    if seconds or not parts:
+        parts.append(f"{seconds}s")
+    return "".join(parts)
+
+
 def online_status(data):
     error = str(data.get("error", "")).lower()
     user = data.get("user_name") or data.get("username")
@@ -201,6 +233,10 @@ def online_status(data):
         product = data.get("products_name")
         if product:
             message += f" @ {product}"
+        if data.get("remain_bytes") is not None:
+            message += f" @ 剩余流量 {format_bytes(data['remain_bytes'])}"
+        if data.get("remain_seconds") is not None:
+            message += f" @ 剩余时长 {format_seconds(data['remain_seconds'])}"
         return True, message
     if data.get("online_ip") and not user:
         return False, "offline: no active user"

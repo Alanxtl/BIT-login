@@ -110,6 +110,13 @@ class ParsingTests(unittest.TestCase):
             "failed",
         )
 
+    def test_format_bytes_uses_binary_units(self):
+        self.assertEqual(self.srun.format_bytes(317111040007), "295.33 GiB")
+
+    def test_format_seconds_handles_unlimited_and_hours(self):
+        self.assertEqual(self.srun.format_seconds(0), "不限时")
+        self.assertEqual(self.srun.format_seconds(3661), "1h1m1s")
+
 
 class FakeHttp:
     def __init__(self):
@@ -231,7 +238,8 @@ class OperationTests(unittest.TestCase):
 
     def test_check_reports_online_status_from_rad_user_info(self):
         http = OnlineInfoHttp(
-            'jsonp_srun_info({"error":"ok","user_name":"20260001","online_ip":"10.1.2.3","products_name":"学生套餐"})'
+            'jsonp_srun_info({"error":"ok","user_name":"20260001","online_ip":"10.1.2.3",'
+            '"products_name":"学生套餐","remain_bytes":317111040007,"remain_seconds":0})'
         )
         result = self.srun.check(
             http=http,
@@ -241,7 +249,10 @@ class OperationTests(unittest.TestCase):
             portal_path="",
         )
         self.assertTrue(result["online"])
-        self.assertEqual(result["message"], "online: 20260001 @ 10.1.2.3 @ 学生套餐")
+        self.assertEqual(
+            result["message"],
+            "online: 20260001 @ 10.1.2.3 @ 学生套餐 @ 剩余流量 295.33 GiB @ 剩余时长 不限时",
+        )
         self.assertEqual(http.calls[0][0], "http://10.0.0.55/cgi-bin/rad_user_info")
         self.assertEqual(http.calls[0][1]["callback"], "jsonp_srun_info")
 
